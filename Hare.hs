@@ -8,13 +8,13 @@ data RE :: * -> * where
   Empty :: RE ()
   Fail :: RE a
   -- Char 
-  Char :: [Char] -> RE [Char] 
+  Char :: String -> RE String 
   -- Seq
   Seq  :: RE a -> RE b ->  RE (a, b)
   -- Choose
   Choose ::  RE a -> RE a -> RE a -- type family
   -- Star
-  Star :: RE a -> RE a
+  Star :: RE a -> RE [a]
   Action :: (a -> b) -> RE a -> RE b
 match :: (Alternative f, Monad f) => RE a -> Hare f a
 match Empty = pure ()
@@ -31,10 +31,7 @@ match (Seq a b) = do
 match (Choose a b) = 
   match a <|> match b
 match (Star a) = 
-  addFront <$> match a <*> match (Star a) <|> pure ()
-  where 
-    addFront x (Char xs) = Char (x:xs)
-    addFront _ _ = error "(should be) impossible!"
+  (:) <$> match a <*> match (Star a) <|>  pure []
 
 
 matchAnywhere :: (Alternative f, Monad f) => RE a -> Hare f a
