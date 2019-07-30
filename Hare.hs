@@ -1,4 +1,4 @@
-{-# LANGUAGE GADTs, DataKinds, KindSignatures, TupleSections, PolyKinds, TypeOperators, TypeFamilies, PartialTypeSignatures #-}
+{-# LANGUAGE GADTs, DataKinds, PolyKinds, TypeOperators, TypeFamilies, PartialTypeSignatures #-}
 module Hare where
 import Control.Monad
 import Control.Applicative 
@@ -8,12 +8,32 @@ data RE :: * -> * where
   Empty :: RE ()
   Fail :: RE a
   -- Char 
+  Char :: RE Char 
   -- Seq
+  Seq  :: RE (RE a, RE b)
   -- Choose
+  Choose ::  RE (RE a, RE b)
   -- Star
+  Star :: RE (RE a)
   Action :: (a -> b) -> RE a -> RE b
 match :: (Alternative f, Monad f) => RE a -> Hare f a
-match re = error "'match' unimplemented"
+match (Empty _) = pure None
+match (Fail _) = failure
+match (Char cs) = do 
+  x <- readCharacter
+  guard (x `elem` cs)
+  pure (Character x)
+match (Seq a b) = do 
+  ra <- match a 
+  rb <- match b  
+  pure (Tuple ra rb)
+match (Choose a b) = 
+  match a <|> match b 
+match (Star a) = 
+  addFront <$> match a <*> match (Star a) <|> pure (Repetition [])
+  where 
+    addFront x (Repetition xs) = Repetition (x:xs)
+    addFront _ _ = error "impoosible"
 
 
 matchAnywhere :: (Alternative f, Monad f) => RE a -> Hare f a
