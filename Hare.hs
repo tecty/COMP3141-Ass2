@@ -8,32 +8,33 @@ data RE :: * -> * where
   Empty :: RE ()
   Fail :: RE a
   -- Char 
-  Char :: RE Char 
+  Char :: [Char] -> RE [Char] 
   -- Seq
-  Seq  :: RE (RE a, RE b)
+  Seq  :: RE a -> RE b ->  RE (a, b)
   -- Choose
-  Choose ::  RE (RE a, RE b)
+  Choose ::  RE a -> RE a -> RE a -- type family
   -- Star
-  Star :: RE (RE a)
+  Star :: RE a -> RE a
   Action :: (a -> b) -> RE a -> RE b
 match :: (Alternative f, Monad f) => RE a -> Hare f a
-match (Empty _) = pure None
-match (Fail _) = failure
+match Empty = pure ()
+match Fail  = failure
 match (Char cs) = do 
   x <- readCharacter
-  guard (x `elem` cs)
-  pure (Character x)
+  if x `elem` cs 
+    then pure [x] 
+    else pure []
 match (Seq a b) = do 
   ra <- match a 
-  rb <- match b  
-  pure (Tuple ra rb)
+  rb <- match b 
+  pure (ra, rb)
 match (Choose a b) = 
-  match a <|> match b 
+  match a <|> match b
 match (Star a) = 
-  addFront <$> match a <*> match (Star a) <|> pure (Repetition [])
+  addFront <$> match a <*> match (Star a) <|> pure ()
   where 
-    addFront x (Repetition xs) = Repetition (x:xs)
-    addFront _ _ = error "impoosible"
+    addFront x (Char xs) = Char (x:xs)
+    addFront _ _ = error "(should be) impossible!"
 
 
 matchAnywhere :: (Alternative f, Monad f) => RE a -> Hare f a
