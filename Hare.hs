@@ -8,7 +8,7 @@ data RE :: * -> * where
   Empty :: RE ()
   Fail :: RE a
   -- Char 
-  Char :: String -> RE String 
+  Char :: String -> RE Char
   -- Seq
   Seq  :: RE a -> RE b ->  RE (a, b)
   -- Choose
@@ -23,8 +23,8 @@ match Fail  = failure
 match (Char cs) = do 
   x <- readCharacter
   if x `elem` cs 
-    then pure [x] 
-    else pure []
+    then pure x
+    else failure
 match (Seq a b) = do 
   ra <- match a 
   rb <- match b 
