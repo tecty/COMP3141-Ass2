@@ -16,6 +16,7 @@ data RE :: * -> * where
   -- Star
   Star :: RE a -> RE [a]
   Action :: (a -> b) -> RE a -> RE b
+
 match :: (Alternative f, Monad f) => RE a -> Hare f a
 match Empty = pure ()
 match Fail  = failure
@@ -32,6 +33,7 @@ match (Choose a b) =
   match a <|> match b
 match (Star a) = 
   (:) <$> match a <*> match (Star a) <|>  pure []
+match (Action f a) = f <$> match a 
 
 
 matchAnywhere :: (Alternative f, Monad f) => RE a -> Hare f a
