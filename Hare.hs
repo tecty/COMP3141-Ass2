@@ -43,27 +43,23 @@ matchAnywhere re = match re <|> (readCharacter >> matchAnywhere re)
 
 infixr `cons`  
 cons :: RE a -> RE [a] -> RE [a]
--- cons x xs = (:) <$> match x <*> matchAnywhere xs 
--- RE [a] -> [a] (this cant happen because it's monad)
--- then I can use a:[a] to finish this 
-cons x xs = Action contMatch x
-  where 
-    contMatch :: a -> [a]
-    contMatch = pure
+cons x xs =  Action (uncurry (:)) (Seq x xs)  
 
 string :: String -> RE String
-string xs = error "'string' unimplemented"
+string [] = Action (const "") Empty
+string (x:xs) = Choose (Char [x] `cons` string xs) Fail
 
 rpt :: Int -> RE a -> RE [a]
-rpt n re = re `cons` rpt (n-1) re
+rpt 0 re = Action (const []) Empty
+rpt n re = Choose (re `cons` rpt (n-1) re) Fail
 -- rpt n re = error "Not implement"
 
 rptRange :: (Int, Int) -> RE a -> RE [a]
 -- rptRange (x,y) re = error "Not implement"
-rptRange (x,y) re =  choose $ (`rpt` re) <$> [y..x]
+rptRange (x,y) re = (choose . map (`rpt` re)) [y,y-1..x]
 
 option :: RE a -> RE (Maybe a)
-option re = error "'option' unimplemented"
+option re = Choose (Action Just re) (Action (const Nothing) Empty)
 -- option re = Action (\x -> Maybe x) re 
 
 plus :: RE a -> RE [a]
